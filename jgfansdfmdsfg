@@ -1,0 +1,217 @@
+-- Roblox LocalScript for Camera Control GUI with Dragging, Close Button, Title, and Toggle
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CameraControlGui"
+screenGui.Parent = playerGui
+screenGui.ResetOnSpawn = false
+
+-- Create Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 210)
+frame.Position = UDim2.new(0, 10, 0, 10)
+frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+
+-- Create UICorner for rounded edges
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 8)
+uiCorner.Parent = frame
+
+-- Create Header Frame
+local headerFrame = Instance.new("Frame")
+headerFrame.Size = UDim2.new(1, 0, 0, 30)
+headerFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+headerFrame.BorderSizePixel = 0
+headerFrame.LayoutOrder = 0
+headerFrame.Parent = frame
+
+-- Create Title Label
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(0.7, -5, 1, 0)
+titleLabel.Position = UDim2.new(0, 5, 0, 0)
+titleLabel.BactoggleButton.Text = scriptsVisible and "Hide" or "Show"kgroundTransparency = 1
+titleLabel.Text = "Flick GUI 1.0"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.TextSize = 19
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Parent = headerFrame
+
+-- Create Scripts Container
+local scriptsContainer = Instance.new("Frame")
+scriptsContainer.Name = "ScriptsContainer"
+scriptsContainer.Size = UDim2.new(1, 0, 1, -30)
+scriptsContainer.Position = UDim2.new(0, 0, 0, 30)
+scriptsContainer.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+scriptsContainer.BorderSizePixel = 0
+scriptsContainer.LayoutOrder = 1
+scriptsContainer.Parent = frame
+
+-- Create UIListLayout for button arrangement
+local uiListLayout = Instance.new("UIListLayout")
+uiListLayout.Padding = UDim.new(0, 5)
+uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+uiListLayout.Parent = scriptsContainer
+
+-- Function to create a styled button
+local function createButton(name, text, layoutOrder, callback, parent)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Size = UDim2.new(1, -10, 0, 30)
+    button.Position = UDim2.new(0, 5, 0, 0)
+    button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Font = Enum.Font.SourceSans
+    button.TextSize = 18
+    button.LayoutOrder = layoutOrder
+    button.Parent = parent
+    
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 5)
+    buttonCorner.Parent = button
+    
+    button.MouseButton1Click:Connect(callback)
+    return button
+end
+
+-- Toggle Scripts Visibility
+local scriptsVisible = true
+local function toggleScripts()
+    scriptsVisible = not scriptsVisible
+    scriptsContainer.Visible = scriptsVisible
+    frame.Size = scriptsVisible and UDim2.new(0, 200, 0, 210) or UDim2.new(0, 200, 0, 30)
+end
+
+-- Create Toggle Button
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.Size = UDim2.new(0.3, -5, 1, -5)
+toggleButton.Position = UDim2.new(0.7, 0, 0, 2)
+toggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+toggleButton.Text = "—"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.Font = Enum.Font.SourceSans
+toggleButton.TextSize = 16
+toggleButton.Parent = headerFrame
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 5)
+toggleCorner.Parent = toggleButton
+
+toggleButton.MouseButton1Click:Connect(toggleScripts)
+
+-- Dragging Functionality
+local isDragging = false
+local dragStart = nil
+local startPos = nil
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        isDragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if isDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            nextXScale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+frame.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        isDragging = false
+    end
+end)
+
+-- First Script Functionality (Quick 180° rotation)
+local rotationAngle = 180
+local rotationTime = 0.1
+
+local function quickRotate180()
+    local defaultCFrame = camera.CFrame
+    local rotation = CFrame.Angles(0, math.rad(rotationAngle), 0)
+    local rotatedCFrame = camera.CFrame * rotation
+
+    local tweenInfo = TweenInfo.new(rotationTime, Enum.EasingStyle.Linear)
+    local tweenToRotated = TweenService:Create(camera, tweenInfo, {CFrame = rotatedCFrame})
+    tweenToRotated:Play()
+
+    tweenToRotated.Completed:Wait()
+
+    local tweenBack = TweenService:Create(camera, tweenInfo, {CFrame = defaultCFrame})
+    tweenBack:Play()
+end
+
+-- Second Script Functionality (Toggle 180° rotation)
+local isRotated180 = false
+local defaultCFrame180 = camera.CFrame
+
+local function toggleRotate180()
+    if not isRotated180 then
+        defaultCFrame180 = camera.CFrame
+        local rotation = CFrame.Angles(0, math.rad(180), 0)
+        camera.CFrame = camera.CFrame * rotation
+        isRotated180 = true
+    else
+        camera.CFrame = defaultCFrame180
+        isRotated180 = false
+    end
+end
+
+-- Third Script Functionality (Toggle 90° rotation)
+local isRotated90 = false
+local defaultCFrame90 = camera.CFrame
+
+local function toggleRotate90()
+    if not isRotated90 then
+        defaultCFrame90 = camera.CFrame
+        local rotation = CFrame.Angles(0, math.rad(90), 0)
+        camera.CFrame = camera.CFrame * rotation
+        isRotated90 = true
+    else
+        camera.CFrame = defaultCFrame90
+        isRotated90 = false
+    end
+end
+
+-- Close GUI Functionality
+local function closeGui()
+    screenGui:Destroy()
+end
+
+-- Create buttons for each function
+createButton("QuickRotateButton", "Toggle 360° (X)", 1, quickRotate180, scriptsContainer)
+createButton("Toggle180Button", "Toggle 180° (C)", 2, toggleRotate180, scriptsContainer)
+createButton("Toggle90Button", "Toggle 90° (V)", 3, toggleRotate90, scriptsContainer)
+createButton("CloseButton", "Desroy GUI", 4, closeGui, scriptsContainer)
+
+-- Maintain original keyboard controls
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if gameProcessedEvent then return end
+    
+    if input.KeyCode == Enum.KeyCode.X then
+        quickRotate180()
+    elseif input.KeyCode == Enum.KeyCode.C then
+        toggleRotate180()
+    elseif input.KeyCode == Enum.KeyCode.V then
+        toggleRotate90()
+    end
+end)
